@@ -22,6 +22,8 @@ public class CsvFileWriter {
 
     public static void writeDataToCsvFile(String outputFilePath) {
 
+        logger.info("Writing data to csv.");
+
         initializeFileWriter(outputFilePath);
         Map<String, RowInFile> rowsMap = GeneratedData.rowsMap;
 

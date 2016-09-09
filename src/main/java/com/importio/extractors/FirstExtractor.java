@@ -39,6 +39,8 @@ public class FirstExtractor {
             e.printStackTrace();
         }
 
+        logger.info("Extracting data ... please be patient.");
+
         for (int i = 1; i <= NUMBER_OF_PAGES; i++) {
             String pageNumber = "";
             if (i != 1) {
