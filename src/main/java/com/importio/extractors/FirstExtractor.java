@@ -14,6 +14,7 @@ import org.eclipse.jetty.client.util.BufferingResponseListener;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by anemari.
@@ -21,23 +22,17 @@ import java.nio.charset.Charset;
 public class FirstExtractor {
     private final int NUMBER_OF_PAGES = 10;
     private HttpClient httpClient;
-    private ObjectMapper mapper;
-    private SecondExtractor secondExtractor = new SecondExtractor();
+    private ObjectMapper mapper = new ObjectMapper();
+    private SecondExtractor secondExtractor;
     private Logger logger = Logger.getLogger(FirstExtractor.class);
+    private CountDownLatch requestLatch = new CountDownLatch(250);
 
-
-    public FirstExtractor(HttpClient httpClient, ObjectMapper mapper) {
+    public FirstExtractor(HttpClient httpClient) {
         this.httpClient = httpClient;
-        this.mapper = mapper;
+        secondExtractor = new SecondExtractor(mapper, httpClient, requestLatch);
     }
 
     public void extract() {
-
-        try {
-            httpClient.start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         logger.info("Extracting data ... please be patient.");
 
@@ -80,7 +75,7 @@ public class FirstExtractor {
                             String detailPageURL = getDetailPageURL(groupEntry);
                             String productName = getProductName(groupEntry);
                             String productPrice = getProductPrice(groupEntry);
-                            secondExtractor.extractDataFromDetailPage(detailPageURL, productName, productPrice, httpClient);
+                            secondExtractor.extractDataFromDetailPage(detailPageURL, productName, productPrice);
                         }
                     }
                 }
@@ -123,5 +118,8 @@ public class FirstExtractor {
         return valueToReturn;
     }
 
+    public void waitUntilFinished() throws InterruptedException {
+        requestLatch.await();
+    }
 
 }

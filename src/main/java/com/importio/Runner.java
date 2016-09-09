@@ -1,8 +1,6 @@
 package com.importio;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importio.extractors.FirstExtractor;
-import com.importio.extractors.SecondExtractor;
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -19,20 +17,29 @@ public class Runner {
             System.exit(1);
         }
 
-        String outputFilePath = args[0];
-
-        HttpClient httpClient = new HttpClient(new SslContextFactory());
-        ObjectMapper mapper = new ObjectMapper();
-        FirstExtractor firstExtractor = new FirstExtractor(httpClient, mapper);
-        firstExtractor.extract();
-
+        HttpClient httpClient = null;
         try {
-            SecondExtractor.doneSignal.await();
+            String outputFilePath = args[0];
+            httpClient = new HttpClient(new SslContextFactory());
+            httpClient.start();
+
+            FirstExtractor firstExtractor = new FirstExtractor(httpClient);
+            firstExtractor.extract();
+
+            firstExtractor.waitUntilFinished();
             logger.info("Extraction finished.");
-            httpClient.stop();
+
             CsvFileWriter.writeDataToCsvFile(outputFilePath);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (httpClient != null) {
+                    httpClient.stop();
+                }
+            } catch (Exception e) {
+                logger.error(e);
+            }
         }
     }
 }

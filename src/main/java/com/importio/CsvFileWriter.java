@@ -15,7 +15,6 @@ public class CsvFileWriter {
 
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
-    private static FileWriter fileWriter;
     private static final String HEADER = "Product name,Product price,Detail page url,Article Number,Product Images";
     private static Logger logger = Logger.getLogger(CsvFileWriter.class);
 
@@ -24,10 +23,10 @@ public class CsvFileWriter {
 
         logger.info("Writing data to csv.");
 
-        initializeFileWriter(outputFilePath);
-        Map<String, RowInFile> rowsMap = GeneratedData.rowsMap;
-
+        FileWriter fileWriter = null;
         try {
+            fileWriter = getFileWriter(outputFilePath);
+            Map<String, RowInFile> rowsMap = DataMap.rowsMap;
             for (String row : rowsMap.keySet()) {
                 RowInFile line = rowsMap.get(row);
                 String productName = line.getProductName();
@@ -59,8 +58,9 @@ public class CsvFileWriter {
             logger.error(e);
         } finally {
             try {
-                fileWriter.flush();
-                fileWriter.close();
+                if (fileWriter != null) {
+                    fileWriter.close();
+                }
             } catch (IOException e) {
                 logger.error("Error while flushing/closing fileWriter ", e);
             }
@@ -74,14 +74,11 @@ public class CsvFileWriter {
         return productName;
     }
 
-    private static void initializeFileWriter(String outputFilePath) {
-        try {
-            fileWriter = new FileWriter(outputFilePath);
-            fileWriter.append(HEADER);
-            fileWriter.append(NEW_LINE_SEPARATOR);
-        } catch (IOException e) {
-            logger.error(e);
-        }
+    private static FileWriter getFileWriter(String outputFilePath) throws IOException {
+        FileWriter fileWriter = new FileWriter(outputFilePath);
+        fileWriter.append(HEADER);
+        fileWriter.append(NEW_LINE_SEPARATOR);
+        return fileWriter;
     }
 
 }

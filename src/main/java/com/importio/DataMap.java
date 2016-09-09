@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Created by anemari.
  */
-public class GeneratedData {
+public class DataMap {
 
     public static Map<String, RowInFile> rowsMap = Collections.synchronizedMap(new HashMap<>());
 

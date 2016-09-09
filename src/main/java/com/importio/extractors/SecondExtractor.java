@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.importio.GeneratedData;
+import com.importio.DataMap;
 import com.importio.RowInFile;
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.client.HttpClient;
@@ -21,11 +21,18 @@ import java.util.concurrent.CountDownLatch;
  * Created by anemari.
  */
 public class SecondExtractor {
-    private ObjectMapper mapper = new ObjectMapper();
-    public static CountDownLatch doneSignal = new CountDownLatch(250);
+    private ObjectMapper mapper;
+    private HttpClient httpClient;
+    private CountDownLatch requestLatch;
     private Logger logger = Logger.getLogger(SecondExtractor.class);
 
-    public void extractDataFromDetailPage(final String detailPageURL, final String productName, final String productPrice, HttpClient httpClient) {
+    public SecondExtractor(ObjectMapper mapper, HttpClient httpClient, CountDownLatch requestLatch) {
+        this.mapper = mapper;
+        this.httpClient = httpClient;
+        this.requestLatch = requestLatch;
+    }
+
+    public void extractDataFromDetailPage(final String detailPageURL, final String productName, final String productPrice) {
         String productURL = detailPageURL.replaceAll("/", "%2F");
         String basicURL = "https://extraction.import.io/query/extractor/e8e072fc-cbb0-4ed7-b8a7-ecde602af3a9?_apikey=3afa40e842c9402c986cc3221b426b894f11fee5fd57cca0ce79c405314ae90c01348102889dd2fb6f365c637aae7dd611668ec7b374c919e336331e10207aac794503ef10d6cc1051bf0565b35d2202&url=";
         String urlForRequest = basicURL + productURL;
@@ -39,21 +46,21 @@ public class SecondExtractor {
                     public void onContent(Response response, ByteBuffer content) {
                         super.onContent(response, content);
                         String contentString = new String(content.array(), Charset.forName("UTF-8"));
-                        parseJsonAndCreateRowObject(contentString, detailPageURL, productName, productPrice);
-                        doneSignal.countDown();
+                        parseJsonAndSaveRowObject(contentString, detailPageURL, productName, productPrice);
+                        requestLatch.countDown();
                     }
 
                     @Override
                     public void onFailure(Response response, Throwable failure) {
                         super.onFailure(response, failure);
-                        doneSignal.countDown();
+                        requestLatch.countDown();
                         logger.error(failure);
                     }
                 });
 
     }
 
-    private void parseJsonAndCreateRowObject(String contentString, String detailPageURL, String productName, String productPrice) {
+    private void parseJsonAndSaveRowObject(String contentString, String detailPageURL, String productName, String productPrice) {
         try {
             JsonFactory factory = mapper.getFactory();
             JsonParser parser = factory.createParser(contentString);
@@ -84,7 +91,7 @@ public class SecondExtractor {
         rowInFile.setDetailPageURL(detailPageURL);
         rowInFile.setProductName(productName);
         rowInFile.setProductPrice(productPrice);
-        GeneratedData.rowsMap.put(articleNumber, rowInFile);
+        DataMap.rowsMap.put(articleNumber, rowInFile);
     }
 
     private String getArticleNumber(JsonNode groupEntry) {
